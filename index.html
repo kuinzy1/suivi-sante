@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Suivi Santé">
+<link rel="manifest" href="manifest.json">
+<title>Suivi Santé</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#6b7280;--ac:#2f6f5e;--bd:#e5e7eb}
+[data-theme=dark]{--bg:#0f1317;--card:#181d23;--tx:#e8ebef;--mut:#8b94a1;--ac:#5bb59d;--bd:#262c34}
+*{box-sizing:border-box}
+body{margin:0;font:16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+main{max-width:640px;margin:auto;padding:16px 16px 90px}
+h1{font-size:20px;margin:8px 0 16px}h2{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:600}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{font-size:26px;font-weight:700}.mut{color:var(--mut);font-size:13px}
+input,select{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font-size:16px;margin:4px 0 10px}
+button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-size:16px;width:100%;margin-top:4px}
+button.sec{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+button.x{width:auto;background:none;color:var(--mut);padding:4px 8px;margin:0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:14px 4px;color:var(--mut);font-size:13px}
+nav a.on{color:var(--ac);font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
+.bar{height:10px;background:var(--bd);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.msg{color:var(--ac);font-size:14px;min-height:20px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const SB_URL='https://hobtctgvcpudakvnufvx.supabase.co';
+const SB_KEY='sb_publishable_O-R-h7AmCxpBpQBk2tqgDQ_RLFdTsuD';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const S={user:null,profile:null,goal:null,w:[],r:[],tab:'home',charts:{}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+
+const T={
+fr:{home:'Accueil',weight:'Poids',runs:'Course',settings:'Réglages',email:'E-mail',password:'Mot de passe',login:'Connexion',magic:'Recevoir un lien de connexion',sent:'Lien envoyé, vérifie tes e-mails.',logout:'Déconnexion',date:'Date',bodyfat:'% masse grasse',save:'Enregistrer',saved:'Enregistré ✓',distance:'Distance',minutes:'Durée (min)',goal:'Objectif',gain:'Prise de poids',loss:'Perte de poids',maintain:'Maintien',performance:'Performance',target:'Poids cible',targetDate:'Date cible',language:'Langue',theme:'Thème',light:'Clair',dark:'Sombre',current:'Poids actuel',toTarget:'Progression',trend:'Tendance 7 j',week:'Cette semaine',kmWeek:'km cette semaine',change7:'Variation 7 j',export:'Exporter en Excel',import:'Importer un fichier Excel',name:'Prénom',newpwd:'Nouveau mot de passe',pwdok:'Mot de passe modifié ✓',noData:'Aucune donnée',pace:'Allure',weekly:'km par semaine',imported:'lignes importées',units:'Unités',importHelp:'Feuilles: weight (date, weight_kg, body_fat_pct) et runs (date, distance_km, duration_min). Dates AAAA-MM-JJ, valeurs en kg et km.'},
+en:{home:'Home',weight:'Weight',runs:'Runs',settings:'Settings',email:'Email',password:'Password',login:'Log in',magic:'Email me a login link',sent:'Link sent, check your inbox.',logout:'Log out',date:'Date',bodyfat:'Body fat %',save:'Save',saved:'Saved ✓',distance:'Distance',minutes:'Duration (min)',goal:'Goal',gain:'Weight gain',loss:'Weight loss',maintain:'Maintenance',performance:'Performance',target:'Target weight',targetDate:'Target date',language:'Language',theme:'Theme',light:'Light',dark:'Dark',current:'Current weight',toTarget:'Progress',trend:'7-day trend',week:'This week',kmWeek:'km this week',change7:'7-day change',export:'Export to Excel',import:'Import an Excel file',name:'First name',newpwd:'New password',pwdok:'Password updated ✓',noData:'No data',pace:'Pace',weekly:'km per week',imported:'rows imported',units:'Units',importHelp:'Sheets: weight (date, weight_kg, body_fat_pct) and runs (date, distance_km, duration_min). Dates YYYY-MM-DD, values in kg and km.'},
+pl:{home:'Start',weight:'Waga',runs:'Bieganie',settings:'Ustawienia',email:'E-mail',password:'Hasło',login:'Zaloguj',magic:'Wyślij link do logowania',sent:'Link wysłany, sprawdź skrzynkę.',logout:'Wyloguj',date:'Data',bodyfat:'% tkanki tłuszczowej',save:'Zapisz',saved:'Zapisano ✓',distance:'Dystans',minutes:'Czas (min)',goal:'Cel',gain:'Przyrost masy',loss:'Redukcja wagi',maintain:'Utrzymanie',performance:'Wydajność',target:'Waga docelowa',targetDate:'Data docelowa',language:'Język',theme:'Motyw',light:'Jasny',dark:'Ciemny',current:'Aktualna waga',toTarget:'Postęp',trend:'Trend 7 dni',week:'Ten tydzień',kmWeek:'km w tym tygodniu',change7:'Zmiana 7 dni',export:'Eksport do Excela',import:'Importuj plik Excel',name:'Imię',newpwd:'Nowe hasło',pwdok:'Hasło zmienione ✓',noData:'Brak danych',pace:'Tempo',weekly:'km tygodniowo',imported:'zaimportowanych wierszy',units:'Jednostki',importHelp:'Arkusze: weight (date, weight_kg, body_fat_pct) i runs (date, distance_km, duration_min). Daty RRRR-MM-DD, wartości w kg i km.'}
+};
+const lang=()=>S.profile?.language||(['fr','en','pl'].includes(navigator.language.slice(0,2))?navigator.language.slice(0,2):'fr');
+const t=k=>T[lang()][k]||k;
+const wUnit=()=>S.profile?.weight_unit||'kg', dUnit=()=>S.profile?.distance_unit||'km';
+const kgOut=v=>wUnit()==='lb'?v*2.20462:v, kgIn=v=>wUnit()==='lb'?v/2.20462:v;
+const kmOut=v=>dUnit()==='mi'?v*0.621371:v, kmIn=v=>dUnit()==='mi'?v/0.621371:v;
+const fW=v=>v==null?'–':kgOut(+v).toFixed(1)+' '+wUnit();
+const fD=v=>kmOut(+v).toFixed(2)+' '+dUnit();
+const fPace=(km,s)=>{const m=s/60/kmOut(km);return Math.floor(m)+':'+String(Math.round((m%1)*60)).padStart(2,'0')+' /'+dUnit()};
+
+async function init(){
+  const {data:{session}}=await sb.auth.getSession();
+  sb.auth.onAuthStateChange((_e,s)=>{if(s?.user?.id!==S.user?.id)boot(s)});
+  await boot(session);
+}
+async function boot(session){
+  S.user=session?.user||null;
+  if(!S.user){S.profile=null;return renderLogin()}
+  await loadAll();render();
+}
+async function loadAll(){
+  const [p,g,w,r]=await Promise.all([
+    sb.from('profiles').select('*').eq('id',S.user.id).single(),
+    sb.from('goals').select('*').eq('active',true).order('created_at',{ascending:false}).limit(1),
+    sb.from('body_entries').select('*').order('entry_date'),
+    sb.from('runs').select('*').order('run_date')]);
+  S.profile=p.data;S.goal=g.data?.[0]||null;S.w=w.data||[];S.r=r.data||[];
+}
+
+function renderLogin(){
+  document.documentElement.dataset.theme='light';
+  $('#app').innerHTML=`<main><h1>Suivi Santé</h1><div class="card">
+  <label>${t('email')}</label><input id="em" type="email" autocomplete="email">
+  <label>${t('password')}</label><input id="pw" type="password" autocomplete="current-password">
+  <button onclick="doLogin()">${t('login')}</button>
+  <button class="sec" onclick="doMagic()" style="margin-top:10px">${t('magic')}</button>
+  <p class="msg" id="msg"></p></div></main>`;
+}
+async function doLogin(){
+  const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
+  if(error)$('#msg').textContent=error.message;
+}
+async function doMagic(){
+  const {error}=await sb.auth.signInWithOtp({email:$('#em').value.trim(),options:{shouldCreateUser:false,emailRedirectTo:location.origin}});
+  $('#msg').textContent=error?error.message:t('sent');
+}
+
+const nav=()=>`<nav>${[['home','🏠'],['weight','⚖️'],['runs','🏃'],['settings','⚙️']].map(([k,i])=>`<a class="${S.tab===k?'on':''}" onclick="go('${k}')">${i}<br>${t(k)}</a>`).join('')}</nav>`;
+function go(k){S.tab=k;render()}
+function render(){
+  document.documentElement.dataset.theme=S.profile?.theme||'light';
+  document.documentElement.lang=lang();
+  $('#app').innerHTML=`<main>${views[S.tab]()}</main>${nav()}`;
+  Object.values(S.charts).forEach(c=>c.destroy());S.charts={};
+  if(S.tab==='home'){drawWeight('c1');drawWeekly('c2')}
+  if(S.tab==='weight')drawWeight('c1');
+  if(S.tab==='runs')drawWeekly('c2');
+}
+
+function movAvg(){
+  return S.w.filter(e=>e.weight_kg!=null).map(e=>{
+    const d=new Date(e.entry_date).getTime();
+    const win=S.w.filter(x=>x.weight_kg!=null&&new Date(x.entry_date).getTime()<=d&&new Date(x.entry_date).getTime()>d-7*864e5);
+    return {d:e.entry_date,v:+e.weight_kg,m:win.reduce((a,x)=>a+ +x.weight_kg,0)/win.length};
+  });
+}
+function weekStart(ds){const x=new Date(ds);x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10)}
+function weeklyKm(){const m={};S.r.forEach(r=>{const k=weekStart(r.run_date);m[k]=(m[k]||0)+ +r.distance_km});return m}
+
+function drawWeight(id){
+  const el=document.getElementById(id);if(!el)return;
+  const a=movAvg();if(!a.length)return;
+  const ds=[
+    {label:wUnit(),data:a.map(x=>kgOut(x.v)),borderColor:'#9ca3af',pointRadius:3,tension:.2},
+    {label:t('trend'),data:a.map(x=>kgOut(x.m)),borderColor:'#2f6f5e',borderWidth:3,pointRadius:0,tension:.3}];
+  if(S.goal?.target_weight_kg)ds.push({label:t('target'),data:a.map(()=>kgOut(+S.goal.target_weight_kg)),borderColor:'#d97706',borderDash:[6,4],pointRadius:0});
+  S.charts[id]=new Chart(el,{type:'line',data:{labels:a.map(x=>x.d),datasets:ds},options:{plugins:{legend:{position:'bottom'}},scales:{x:{ticks:{maxTicksLimit:6}}}}});
+}
+function drawWeekly(id){
+  const el=document.getElementById(id);if(!el)return;
+  const m=weeklyKm(),k=Object.keys(m).sort().slice(-12);if(!k.length)return;
+  S.charts[id]=new Chart(el,{type:'bar',data:{labels:k,datasets:[{label:t('weekly')+' ('+dUnit()+')',data:k.map(x=>+kmOut(m[x]).toFixed(1)),backgroundColor:'#2f6f5e'}]},options:{plugins:{legend:{position:'bottom'}},scales:{x:{ticks:{maxTicksLimit:6}}}}});
+}
+
+const views={
+home(){
+  const a=movAvg(),last=a[a.length-1];
+  let prog='',chg='–';
+  if(last){
+    const prev=a.filter(x=>new Date(x.d)<=new Date(last.d)-7*864e5).pop();
+    if(prev)chg=(last.m-prev.m>=0?'+':'')+kgOut(last.m-prev.m).toFixed(1)+' '+wUnit();
+    const g=S.goal;
+    if(g?.target_weight_kg){
+      const start=+(g.start_weight_kg??a[0].v),tg=+g.target_weight_kg;
+      const p=tg===start?100:Math.max(0,Math.min(100,(last.v-start)/(tg-start)*100));
+      prog=`<div class="card"><h2>${t('toTarget')} → ${fW(tg)}</h2><div class="bar"><i style="width:${p.toFixed(0)}%"></i></div><p class="mut">${p.toFixed(0)} %</p></div>`;
+    }
+  }
+  const wk=weekStart(today()),km=weeklyKm()[wk]||0;
+  return `<h1>${esc(S.profile?.display_name||'')}</h1>
+  <div class="grid"><div class="card"><div class="mut">${t('current')}</div><div class="big">${last?fW(last.v):'–'}</div></div>
+  <div class="card"><div class="mut">${t('change7')}</div><div class="big">${chg}</div></div>
+  <div class="card"><div class="mut">${t('trend')}</div><div class="big">${last?fW(last.m):'–'}</div></div>
+  <div class="card"><div class="mut">${t('kmWeek')}</div><div class="big">${kmOut(km).toFixed(1)}</div></div></div>
+  ${prog}<div class="card"><canvas id="c1"></canvas></div><div class="card"><canvas id="c2"></canvas></div>`;
+},
+weight(){
+  return `<h1>${t('weight')}</h1><form class="card" onsubmit="return saveWeight(event)">
+  <label>${t('date')}</label><input id="wd" type="date" value="${today()}" required>
+  <label>${t('weight')} (${wUnit()})</label><input id="wv" type="number" step="0.1" inputmode="decimal" required>
+  <label>${t('bodyfat')}</label><input id="wf" type="number" step="0.1" inputmode="decimal">
+  <button>${t('save')}</button><p class="msg" id="msg"></p></form>
+  <div class="card"><canvas id="c1"></canvas></div>
+  <div class="card">${[...S.w].reverse().slice(0,15).map(e=>`<div class="row"><span>${e.entry_date}</span><span>${fW(e.weight_kg)}${e.body_fat_pct?' · '+e.body_fat_pct+' %':''}</span><button class="x" onclick="del('body_entries','${e.id}')">✕</button></div>`).join('')||`<p class="mut">${t('noData')}</p>`}</div>`;
+},
+runs(){
+  return `<h1>${t('runs')}</h1><form class="card" onsubmit="return saveRun(event)">
+  <label>${t('date')}</label><input id="rd" type="date" value="${today()}" required>
+  <label>${t('distance')} (${dUnit()})</label><input id="rk" type="number" step="0.01" inputmode="decimal" required>
+  <label>${t('minutes')}</label><input id="rm" type="number" step="0.1" inputmode="decimal" required>
+  <button>${t('save')}</button><p class="msg" id="msg"></p></form>
+  <div class="card"><canvas id="c2"></canvas></div>
+  <div class="card">${[...S.r].reverse().slice(0,15).map(r=>`<div class="row"><span>${r.run_date}</span><span>${fD(r.distance_km)} · ${fPace(r.distance_km,r.duration_s)}</span><button class="x" onclick="del('runs','${r.id}')">✕</button></div>`).join('')||`<p class="mut">${t('noData')}</p>`}</div>`;
+},
+settings(){
+  const p=S.profile||{},g=S.goal||{};
+  const opt=(v,cur,l)=>`<option value="${v}" ${v===cur?'selected':''}>${l}</option>`;
+  return `<h1>${t('settings')}</h1>
+  <form class="card" onsubmit="return saveProfile(event)">
+  <label>${t('name')}</label><input id="sn" value="${esc(p.display_name)}">
+  <label>${t('language')}</label><select id="sl">${opt('fr',p.language,'Français')}${opt('en',p.language,'English')}${opt('pl',p.language,'Polski')}</select>
+  <label>${t('units')}</label><div class="grid"><select id="sw">${opt('kg',p.weight_unit,'kg')}${opt('lb',p.weight_unit,'lb')}</select><select id="sd">${opt('km',p.distance_unit,'km')}${opt('mi',p.distance_unit,'mi')}</select></div>
+  <label>${t('theme')}</label><select id="st">${opt('light',p.theme,t('light'))}${opt('dark',p.theme,t('dark'))}</select>
+  <button>${t('save')}</button></form>
+  <form class="card" onsubmit="return saveGoal(event)"><h2>${t('goal')}</h2>
+  <select id="gt">${['gain','loss','maintain','performance'].map(k=>opt(k,g.type,t(k))).join('')}</select>
+  <label>${t('target')} (${wUnit()})</label><input id="gw" type="number" step="0.1" value="${g.target_weight_kg?kgOut(+g.target_weight_kg).toFixed(1):''}">
+  <label>${t('targetDate')}</label><input id="gd" type="date" value="${g.target_date||''}">
+  <button>${t('save')}</button></form>
+  <div class="card"><button onclick="exportXlsx()">${t('export')}</button>
+  <p class="mut">${t('importHelp')}</p><input type="file" accept=".xlsx,.xls,.csv" onchange="importXlsx(this)"><p class="msg" id="msg"></p></div>
+  <form class="card" onsubmit="return savePwd(event)"><label>${t('newpwd')}</label><input id="np" type="password" minlength="8" autocomplete="new-password" required><button class="sec">${t('save')}</button><p class="msg" id="pm"></p></form>
+  <button class="sec" onclick="sb.auth.signOut()">${t('logout')}</button>`;
+}};
+
+const flash=(txt,id='msg')=>{const e=document.getElementById(id);if(e)e.textContent=txt};
+async function saveWeight(e){
+  e.preventDefault();
+  const row={user_id:S.user.id,entry_date:$('#wd').value,weight_kg:+kgIn(+$('#wv').value).toFixed(2),body_fat_pct:$('#wf').value?+$('#wf').value:null};
+  const {error}=await sb.from('body_entries').upsert(row,{onConflict:'user_id,entry_date'});
+  if(error)return flash(error.message);
+  await loadAll();render();flash(t('saved'));return false;
+}
+async function saveRun(e){
+  e.preventDefault();
+  const row={user_id:S.user.id,run_date:$('#rd').value,distance_km:+kmIn(+$('#rk').value).toFixed(3),duration_s:Math.round(+$('#rm').value*60)};
+  const {error}=await sb.from('runs').insert(row);
+  if(error)return flash(error.message);
+  await loadAll();render();flash(t('saved'));return false;
+}
+async function del(table,id){await sb.from(table).delete().eq('id',id);await loadAll();render()}
+async function saveProfile(e){
+  e.preventDefault();
+  const {error}=await sb.from('profiles').update({display_name:$('#sn').value,language:$('#sl').value,weight_unit:$('#sw').value,distance_unit:$('#sd').value,theme:$('#st').value}).eq('id',S.user.id);
+  if(error)return alert(error.message);
+  await loadAll();render();return false;
+}
+async function saveGoal(e){
+  e.preventDefault();
+  const last=S.w.filter(x=>x.weight_kg!=null).pop();
+  await sb.from('goals').update({active:false}).eq('user_id',S.user.id).eq('active',true);
+  const {error}=await sb.from('goals').insert({user_id:S.user.id,type:$('#gt').value,start_weight_kg:last?last.weight_kg:null,target_weight_kg:$('#gw').value?+kgIn(+$('#gw').value).toFixed(2):null,target_date:$('#gd').value||null,active:true});
+  if(error)return alert(error.message);
+  await loadAll();render();return false;
+}
+async function savePwd(e){
+  e.preventDefault();
+  const {error}=await sb.auth.updateUser({password:$('#np').value});
+  flash(error?error.message:t('pwdok'),'pm');return false;
+}
+
+function exportXlsx(){
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(S.w.map(e=>({date:e.entry_date,weight_kg:e.weight_kg,body_fat_pct:e.body_fat_pct}))),'weight');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(S.r.map(r=>({date:r.run_date,distance_km:r.distance_km,duration_min:+(r.duration_s/60).toFixed(2)}))),'runs');
+  XLSX.writeFile(wb,'suivi-sante-'+today()+'.xlsx');
+}
+async function importXlsx(inp){
+  const f=inp.files[0];if(!f)return;
+  const wb=XLSX.read(await f.arrayBuffer());
+  const rows=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n],{raw:false}):[];
+  const ok=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'');
+  const W=rows('weight').filter(r=>ok(r.date)&&r.weight_kg).map(r=>({user_id:S.user.id,entry_date:r.date,weight_kg:+r.weight_kg,body_fat_pct:r.body_fat_pct?+r.body_fat_pct:null}));
+  const R=rows('runs').filter(r=>ok(r.date)&&r.distance_km&&r.duration_min).map(r=>({user_id:S.user.id,run_date:r.date,distance_km:+r.distance_km,duration_s:Math.round(+r.duration_min*60)}));
+  let err=null;
+  if(W.length)err=(await sb.from('body_entries').upsert(W,{onConflict:'user_id,entry_date'})).error;
+  if(!err&&R.length)err=(await sb.from('runs').insert(R)).error;
+  await loadAll();render();flash(err?err.message:(W.length+R.length)+' '+t('imported'));
+}
+init();
+</script>
+</body>
+</html>
