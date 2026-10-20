@@ -11,13 +11,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#f3f6f5;--bg2:#eaefed;--card:#fff;--tx:#12201b;--mut:#74827c;--ac:#2f7d68;--ac2:#1f5a4a;--soft:rgba(47,125,104,.12);--bd:#e3e9e6;--sh:0 1px 2px rgba(16,40,32,.04),0 8px 24px rgba(16,40,32,.06);--r:22px}
+:root{--bg:#f3f6f5;--bg2:#eaefed;--card:#fff;--tx:#12201b;--mut:#74827c;--ac:#2f7d68;--ac2:#1f5a4a;--soft:rgba(47,125,104,.12);--bd:#e3e9e6;--sh:0 1px 2px rgba(16,40,32,.04),0 8px 24px rgba(16,40,32,.06);--r:22px;--ease-out:cubic-bezier(.23,1,.32,1);--ease-io:cubic-bezier(.77,0,.175,1)}
 [data-theme=dark]{--bg:#0b0f10;--bg2:#10161a;--card:#151b1e;--tx:#eaf1ee;--mut:#8b9a94;--ac:#5fc4a8;--ac2:#2f8f77;--soft:rgba(95,196,168,.14);--bd:#222b2f;--sh:0 8px 24px rgba(0,0,0,.35)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{background:var(--bg)}
-body{margin:0;min-height:100vh;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;color:var(--tx);background:radial-gradient(900px 380px at 50% -120px,var(--soft),transparent) no-repeat,var(--bg)}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;color:var(--tx);background:radial-gradient(900px 380px at 50% -120px,var(--soft),transparent) no-repeat,var(--bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums}
 main{max-width:640px;margin:auto;padding:max(20px,env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom))}
-h1{font-size:32px;font-weight:800;letter-spacing:-1px;margin:8px 4px 18px}
+h1{font-size:32px;font-weight:800;letter-spacing:-1px;margin:8px 4px 18px;text-wrap:balance}
 h2{font-size:12px;margin:2px 0 12px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.8px}
 label{font-size:13px;font-weight:500;color:var(--mut)}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh)}
@@ -26,41 +26,53 @@ label{font-size:13px;font-weight:500;color:var(--mut)}
 .grid+.card,.grid{margin-bottom:14px}
 .big{font-size:30px;font-weight:800;letter-spacing:-.8px;line-height:1.1;margin-top:4px}
 .mut{color:var(--mut);font-size:13px}
-input,select{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:14px;background:var(--bg2);color:var(--tx);font-size:16px;margin:5px 0 12px;-webkit-appearance:none;appearance:none;transition:.15s}
+input,select{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:14px;background:var(--bg2);color:var(--tx);font-size:16px;margin:5px 0 12px;-webkit-appearance:none;appearance:none;transition:border-color 150ms ease,box-shadow 150ms ease}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%2374827c' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 input:focus,select:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 4px var(--soft)}
-button{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:0;border-radius:14px;padding:14px 16px;font-size:16px;font-weight:700;width:100%;margin-top:4px;box-shadow:0 8px 18px -8px var(--ac);transition:transform .1s}
-button:active{transform:scale(.98)}
+button{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:0;border-radius:14px;padding:14px 16px;font-size:16px;font-weight:700;width:100%;margin-top:4px;box-shadow:0 8px 18px -8px var(--ac);transition:transform 140ms var(--ease-out),filter 150ms ease}
+button:active{transform:scale(.97)}
 button.sec{background:transparent;color:var(--ac);border:1.5px solid var(--ac);box-shadow:none}
 button.x{width:auto;background:none;color:var(--mut);padding:4px 10px;margin:0;font-weight:400;box-shadow:none}
 button.small{width:auto;margin:0;padding:13px 18px}
 .inline{display:flex;gap:8px;align-items:center}.inline input{margin:0}
 nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));max-width:616px;margin:auto;display:flex;gap:4px;padding:6px;background:color-mix(in srgb,var(--card) 80%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--bd);border-radius:28px;box-shadow:var(--sh)}
-nav a{flex:1;text-align:center;padding:8px 2px 6px;color:var(--mut);font-size:11px;font-weight:600;border-radius:22px;transition:.2s}
+nav a{flex:1;text-align:center;padding:8px 2px 6px;color:var(--mut);font-size:11px;font-weight:600;border-radius:22px;transition:background-color 160ms ease,color 160ms ease,transform 120ms var(--ease-out)}
+nav a:active{transform:scale(.94)}
 nav a.on{color:var(--ac);background:var(--soft)}
 nav svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 2px}
 .row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bd);gap:8px;font-size:15px}
 .row:last-child{border:0}
 .bar{height:10px;background:var(--bg2);border-radius:8px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--ac),var(--ac2))}
-.seg+.card:not(form){background:linear-gradient(135deg,#349078,#1b4f41);border:0;color:#fff;box-shadow:0 14px 30px -12px rgba(31,90,74,.6)}
+.seg+.card:not(form){background:linear-gradient(135deg,#349078,#1b4f41);border:0;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 14px 30px -12px rgba(31,90,74,.6)}
 .seg+.card:not(form) h2{color:rgba(255,255,255,.75)}
 .seg+.card:not(form) .big{font-size:46px}
 .seg+.card:not(form) .bar{background:rgba(255,255,255,.25)}
 .seg+.card:not(form) .bar i{background:#fff}
 .msg{color:var(--ac);font-size:14px;font-weight:600;min-height:20px;margin:8px 0 0}
 .seg{display:flex;background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:3px;margin-bottom:14px}
-.seg button{background:none;color:var(--mut);margin:0;padding:9px;font-size:14px;box-shadow:none;border-radius:11px}
+.seg button{background:none;color:var(--mut);margin:0;padding:9px;font-size:14px;box-shadow:none;border-radius:11px;transition:background-color 160ms ease,color 160ms ease,transform 140ms var(--ease-out)}
 .seg button.on{background:var(--card);color:var(--tx);box-shadow:0 2px 8px rgba(0,0,0,.1)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
-.chip{border:1px solid var(--bd);background:var(--bg2);border-radius:22px;padding:8px 14px;font-size:14px;color:var(--tx);transition:.15s}
+.chip{border:1px solid var(--bd);background:var(--bg2);border-radius:22px;padding:8px 14px;font-size:14px;color:var(--tx);transition:background-color 150ms ease,color 150ms ease,border-color 150ms ease,transform 120ms var(--ease-out)}
+.chip:active{transform:scale(.96)}
 .chip input{display:none}
 .chip:has(input:checked){background:var(--ac);color:#fff;border-color:var(--ac)}
 details summary{color:var(--ac);font-weight:700;padding:8px 0}
 canvas{max-height:260px}
-@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-main>*{animation:up .25s ease both}
-@media (prefers-reduced-motion:reduce){main>*{animation:none}}
+@media (hover:hover){button:hover{filter:brightness(1.06)}nav a:hover{color:var(--tx)}nav a.on:hover{color:var(--ac)}button.x:hover{color:var(--tx)}}
+@keyframes enter{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fill{from{clip-path:inset(0 100% 0 0 round 8px)}to{clip-path:inset(0 0 0 0 round 8px)}}
+main.enter>*{animation:enter 240ms var(--ease-out) both}
+main.enter>*:nth-child(2){animation-delay:30ms}
+main.enter>*:nth-child(3){animation-delay:60ms}
+main.enter>*:nth-child(4){animation-delay:90ms}
+main.enter>*:nth-child(5){animation-delay:120ms}
+main.enter>*:nth-child(n+6){animation-delay:150ms}
+main.enter .bar i{animation:fill 450ms var(--ease-out) 120ms both}
+nav{animation:none}
+@media (prefers-reduced-motion:reduce){main.enter>*{animation:fade 150ms ease both}main.enter .bar i{animation:none}*{transition-duration:.01ms!important}button:active,nav a:active,.chip:active{transform:none}}
 </style>
 </head>
 <body>
@@ -69,7 +81,7 @@ main>*{animation:up .25s ease both}
 const SB_URL='https://hobtctgvcpudakvnufvx.supabase.co';
 const SB_KEY='sb_publishable_O-R-h7AmCxpBpQBk2tqgDQ_RLFdTsuD';
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const S={user:null,profile:null,goal:null,w:[],r:[],ex:[],mt:[],bm:[],wo:[],ws:[],cy:[],tab:'home',trainMode:'workout',period:7,draft:[],chartEx:null,chartMt:null,charts:{}};
+const S={user:null,profile:null,goal:null,w:[],r:[],ex:[],mt:[],bm:[],wo:[],ws:[],cy:[],tab:'home',trainMode:'workout',period:7,draft:[],chartEx:null,chartMt:null,charts:{},anim:0};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
@@ -103,7 +115,7 @@ async function init(){
 async function boot(session){
   S.user=session?.user||null;
   if(!S.user){S.profile=null;return renderLogin()}
-  try{await loadAll();render()}
+  try{await loadAll();S.anim=1;render()}
   catch(e){$('#app').innerHTML=`<main><div class="card"><h2>Error</h2><p>${esc(e.message)}</p><button onclick="sb.auth.signOut()">${t('logout')}</button></div></main>`}
 }
 async function loadAll(){
@@ -121,7 +133,7 @@ async function loadAll(){
 
 function renderLogin(){
   document.documentElement.dataset.theme='light';
-  $('#app').innerHTML=`<main><h1>Suivi Santé</h1><div class="card">
+  $('#app').innerHTML=`<main class="enter"><h1>Suivi Santé</h1><div class="card">
   <label>${t('email')}</label><input id="em" type="email" autocomplete="email">
   <label>${t('password')}</label><input id="pw" type="password" autocomplete="current-password">
   <button onclick="doLogin()">${t('login')}</button>
@@ -139,14 +151,16 @@ cycle:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
 settings:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'};
 function tabs(){const m=S.profile?.modules||{};return ['home','body',...((m.gym!==false||m.running!==false)?['train']:[]),...(m.cycle?['cycle']:[]),'settings']}
 const nav=()=>`<nav>${tabs().map(k=>`<a class="${S.tab===k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${t(k)}</a>`).join('')}</nav>`;
-function go(k){S.tab=k;render()}
+function go(k){if(S.tab!==k)S.anim=1;S.tab=k;render()}
 function render(){
   if(!tabs().includes(S.tab))S.tab='home';
   Object.values(S.charts).forEach(c=>c.destroy());S.charts={};
   document.documentElement.dataset.theme=S.profile?.theme||'light';
   document.documentElement.lang=lang();
   Chart.defaults.color='#8a949c';Chart.defaults.font.family='-apple-system,system-ui,sans-serif';
-  $('#app').innerHTML=`<main>${views[S.tab]()}</main>${nav()}`;
+  Chart.defaults.animation=S.anim?{duration:250,easing:'easeOutQuart'}:false;
+  $('#app').innerHTML=`<main class="${S.anim?'enter':''}">${views[S.tab]()}</main>${nav()}`;
+  S.anim=0;
   ({home:()=>{drawWeight('c1');drawWeekly('c2')},body:()=>{drawWeight('c1');drawMeasure()},train:()=>{drawWeekly('c2');drawEx()},cycle:drawCycle,settings:()=>{}})[S.tab]();
 }
 
