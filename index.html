@@ -69,4 +69,415 @@ main>*{animation:up .25s ease both}
 const SB_URL='https://hobtctgvcpudakvnufvx.supabase.co';
 const SB_KEY='sb_publishable_O-R-h7AmCxpBpQBk2tqgDQ_RLFdTsuD';
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const S={user:null,profile:null,goal:null,w:[],r:[],ex:[],mt:[],bm:[],wo:[],ws:[],cy:[],tab:'home',trainMode:'workout',peri
+const S={user:null,profile:null,goal:null,w:[],r:[],ex:[],mt:[],bm:[],wo:[],ws:[],cy:[],tab:'home',trainMode:'workout',period:7,draft:[],chartEx:null,chartMt:null,charts:{}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const addDays=(ds,n)=>{const d=new Date(ds+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const dayDiff=(a,b)=>Math.round((new Date(a+'T00:00:00Z')-new Date(b+'T00:00:00Z'))/864e5);
+const SYM=['cramps','headache','bloating','fatigue','acne','backpain','cravings','nausea'];
+const ACC='#2f7d68';
+
+const T={
+fr:{home:'Accueil',body:'Corps',train:'Sport',cycle:'Cycle',settings:'Réglages',hello:'Bonjour',email:'E-mail',password:'Mot de passe',login:'Connexion',magic:'Recevoir un lien de connexion',sent:'Lien envoyé, vérifie tes e-mails.',logout:'Déconnexion',date:'Date',save:'Enregistrer',saved:'Enregistré ✓',noData:'Aucune donnée',weight:'Poids',bodyfat:'% masse grasse',measures:'Mensurations',newMeasure:'Nouvelle mesure (ex : Bras)',add:'Ajouter',current:'Poids actuel',change:'Variation',trend:'Tendance 7 j',workout:'Séance',run:'Course',location:'Lieu',gym:'Salle',homeLoc:'Maison',outdoor:'Extérieur',title:'Titre (optionnel)',duration:'Durée (min)',exercise:'Exercice',newEx:'+ Nouvel exercice',exName:'Nom',kindW:'Avec charge',kindB:'Poids du corps',kindD:'Durée',create:'Créer',reps:'Reps (ou sec)',load:'Charge',rpe:'RPE (1-10)',addSet:'Ajouter la série',saveWorkout:'Enregistrer la séance',addSetFirst:'Ajoute au moins une série.',prMsg:'🏆 Nouveau record : ',volume:'Volume',sets:'séries',progress:'Progression',distance:'Distance',minutes:'Durée (min)',pace:'Allure',weekly:'km par semaine',periodStart:'Début des règles',periodEnd:'Fin des règles',flow:'Flux',none:'Aucun',light:'Léger',medium:'Moyen',heavy:'Abondant',symptoms:'Symptômes',mood:'Humeur (1-5)',energy:'Énergie (1-5)',notes:'Notes',nextPeriod:'Prochaines règles (estimation)',cycleDay:'Jour du cycle',avgCycle:'Cycle moyen',days:'jours',needTwo:'Enregistre 2 débuts de règles pour obtenir une estimation.',disclaimer:'Estimation statistique, pas un avis médical.',cramps:'Crampes',headache:'Maux de tête',bloating:'Ballonnements',fatigue:'Fatigue',acne:'Acné',backpain:'Mal de dos',cravings:'Envies',nausea:'Nausées',week:'7 jours',month:'30 jours',sessions:'Séances',kmTotal:'Distance',score:'Score',goalProg:'Progression objectif',name:'Prénom',language:'Langue',units:'Unités (poids, distance, mesures)',theme:'Thème',lightT:'Clair',darkT:'Sombre',goal:'Objectif',gain:'Prise de poids',loss:'Perte de poids',maintain:'Maintien',performance:'Performance',target:'Poids cible',targetDate:'Date cible',modules:'Modules',mGym:'Musculation / sport',mRun:'Course',mCycle:'Cycle',targetSessions:'Séances visées par semaine',measureTypes:'Types de mesures',export:'Exporter en Excel',import:'Importer',importHelp:'Feuilles : weight, measures, runs, workouts, cycle. Exporte d’abord pour obtenir le modèle.',newpwd:'Nouveau mot de passe',pwdok:'Mot de passe modifié ✓',imported:'lignes importées',noEx:'Crée d’abord un exercice.'},
+en:{home:'Home',body:'Body',train:'Training',cycle:'Cycle',settings:'Settings',hello:'Hello',email:'Email',password:'Password',login:'Log in',magic:'Email me a login link',sent:'Link sent, check your inbox.',logout:'Log out',date:'Date',save:'Save',saved:'Saved ✓',noData:'No data',weight:'Weight',bodyfat:'Body fat %',measures:'Measurements',newMeasure:'New measurement (e.g. Arm)',add:'Add',current:'Current weight',change:'Change',trend:'7-day trend',workout:'Workout',run:'Run',location:'Location',gym:'Gym',homeLoc:'Home',outdoor:'Outdoor',title:'Title (optional)',duration:'Duration (min)',exercise:'Exercise',newEx:'+ New exercise',exName:'Name',kindW:'Weighted',kindB:'Bodyweight',kindD:'Duration',create:'Create',reps:'Reps (or sec)',load:'Load',rpe:'RPE (1-10)',addSet:'Add set',saveWorkout:'Save workout',addSetFirst:'Add at least one set.',prMsg:'🏆 New record: ',volume:'Volume',sets:'sets',progress:'Progress',distance:'Distance',minutes:'Duration (min)',pace:'Pace',weekly:'km per week',periodStart:'Period start',periodEnd:'Period end',flow:'Flow',none:'None',light:'Light',medium:'Medium',heavy:'Heavy',symptoms:'Symptoms',mood:'Mood (1-5)',energy:'Energy (1-5)',notes:'Notes',nextPeriod:'Next period (estimate)',cycleDay:'Cycle day',avgCycle:'Average cycle',days:'days',needTwo:'Log 2 period starts to get an estimate.',disclaimer:'Statistical estimate, not medical advice.',cramps:'Cramps',headache:'Headache',bloating:'Bloating',fatigue:'Fatigue',acne:'Acne',backpain:'Back pain',cravings:'Cravings',nausea:'Nausea',week:'7 days',month:'30 days',sessions:'Sessions',kmTotal:'Distance',score:'Score',goalProg:'Goal progress',name:'First name',language:'Language',units:'Units (weight, distance, measures)',theme:'Theme',lightT:'Light',darkT:'Dark',goal:'Goal',gain:'Weight gain',loss:'Weight loss',maintain:'Maintenance',performance:'Performance',target:'Target weight',targetDate:'Target date',modules:'Modules',mGym:'Strength / sport',mRun:'Running',mCycle:'Cycle',targetSessions:'Target sessions per week',measureTypes:'Measurement types',export:'Export to Excel',import:'Import',importHelp:'Sheets: weight, measures, runs, workouts, cycle. Export first to get the template.',newpwd:'New password',pwdok:'Password updated ✓',imported:'rows imported',noEx:'Create an exercise first.'},
+pl:{home:'Start',body:'Ciało',train:'Trening',cycle:'Cykl',settings:'Ustawienia',hello:'Cześć',email:'E-mail',password:'Hasło',login:'Zaloguj',magic:'Wyślij link do logowania',sent:'Link wysłany, sprawdź skrzynkę.',logout:'Wyloguj',date:'Data',save:'Zapisz',saved:'Zapisano ✓',noData:'Brak danych',weight:'Waga',bodyfat:'% tkanki tłuszczowej',measures:'Pomiary',newMeasure:'Nowy pomiar (np. Ramię)',add:'Dodaj',current:'Aktualna waga',change:'Zmiana',trend:'Trend 7 dni',workout:'Trening',run:'Bieg',location:'Miejsce',gym:'Siłownia',homeLoc:'Dom',outdoor:'Plener',title:'Tytuł (opcjonalnie)',duration:'Czas (min)',exercise:'Ćwiczenie',newEx:'+ Nowe ćwiczenie',exName:'Nazwa',kindW:'Z obciążeniem',kindB:'Masa ciała',kindD:'Czas',create:'Utwórz',reps:'Powt. (lub s)',load:'Obciążenie',rpe:'RPE (1-10)',addSet:'Dodaj serię',saveWorkout:'Zapisz trening',addSetFirst:'Dodaj co najmniej jedną serię.',prMsg:'🏆 Nowy rekord: ',volume:'Objętość',sets:'serii',progress:'Postęp',distance:'Dystans',minutes:'Czas (min)',pace:'Tempo',weekly:'km tygodniowo',periodStart:'Początek miesiączki',periodEnd:'Koniec miesiączki',flow:'Intensywność',none:'Brak',light:'Lekka',medium:'Średnia',heavy:'Obfita',symptoms:'Objawy',mood:'Nastrój (1-5)',energy:'Energia (1-5)',notes:'Notatki',nextPeriod:'Następna miesiączka (szacunek)',cycleDay:'Dzień cyklu',avgCycle:'Średni cykl',days:'dni',needTwo:'Zapisz 2 początki miesiączki, aby uzyskać szacunek.',disclaimer:'Szacunek statystyczny, nie porada medyczna.',cramps:'Skurcze',headache:'Ból głowy',bloating:'Wzdęcia',fatigue:'Zmęczenie',acne:'Trądzik',backpain:'Ból pleców',cravings:'Zachcianki',nausea:'Nudności',week:'7 dni',month:'30 dni',sessions:'Treningi',kmTotal:'Dystans',score:'Wynik',goalProg:'Postęp celu',name:'Imię',language:'Język',units:'Jednostki (waga, dystans, pomiary)',theme:'Motyw',lightT:'Jasny',darkT:'Ciemny',goal:'Cel',gain:'Przyrost masy',loss:'Redukcja wagi',maintain:'Utrzymanie',performance:'Wydajność',target:'Waga docelowa',targetDate:'Data docelowa',modules:'Moduły',mGym:'Siła / sport',mRun:'Bieganie',mCycle:'Cykl',targetSessions:'Cel treningów tygodniowo',measureTypes:'Typy pomiarów',export:'Eksport do Excela',import:'Importuj',importHelp:'Arkusze: weight, measures, runs, workouts, cycle. Najpierw wyeksportuj, aby dostać szablon.',newpwd:'Nowe hasło',pwdok:'Hasło zmienione ✓',imported:'zaimportowanych wierszy',noEx:'Najpierw utwórz ćwiczenie.'}
+};
+const lang=()=>S.profile?.language||(['fr','en','pl'].includes(navigator.language.slice(0,2))?navigator.language.slice(0,2):'fr');
+const t=k=>T[lang()][k]||k;
+const wUnit=()=>S.profile?.weight_unit||'kg',dUnit=()=>S.profile?.distance_unit||'km',lUnit=()=>S.profile?.length_unit||'cm';
+const kgOut=v=>wUnit()==='lb'?v*2.20462:v,kgIn=v=>wUnit()==='lb'?v/2.20462:v;
+const kmOut=v=>dUnit()==='mi'?v*0.621371:v,kmIn=v=>dUnit()==='mi'?v/0.621371:v;
+const cmOut=v=>lUnit()==='in'?v/2.54:v,cmIn=v=>lUnit()==='in'?v*2.54:v;
+const fW=v=>v==null?'–':kgOut(+v).toFixed(1)+' '+wUnit();
+const fD=v=>kmOut(+v).toFixed(2)+' '+dUnit();
+const fPace=(km,s)=>{const m=s/60/kmOut(km);return Math.floor(m)+':'+String(Math.round((m%1)*60)%60).padStart(2,'0')+' /'+dUnit()};
+const flash=(txt,id='msg')=>{const e=document.getElementById(id);if(e)e.textContent=txt};
+
+async function all(tb,o){let out=[],from=0;for(;;){const {data,error}=await sb.from(tb).select('*').order(o).range(from,from+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;from+=1000}}
+async function init(){
+  const {data:{session}}=await sb.auth.getSession();
+  sb.auth.onAuthStateChange((_e,s)=>{if(s?.user?.id!==S.user?.id)boot(s)});
+  await boot(session);
+}
+async function boot(session){
+  S.user=session?.user||null;
+  if(!S.user){S.profile=null;return renderLogin()}
+  try{await loadAll();render()}
+  catch(e){$('#app').innerHTML=`<main><div class="card"><h2>Error</h2><p>${esc(e.message)}</p><button onclick="sb.auth.signOut()">${t('logout')}</button></div></main>`}
+}
+async function loadAll(){
+  const [p,g]=await Promise.all([
+    sb.from('profiles').select('*').eq('id',S.user.id).single(),
+    sb.from('goals').select('*').eq('active',true).order('created_at',{ascending:false}).limit(1)]);
+  if(p.error)throw p.error;
+  S.profile=p.data;S.goal=g.data?.[0]||null;
+  [S.w,S.r,S.ex,S.mt,S.bm,S.wo,S.ws,S.cy]=await Promise.all([
+    all('body_entries','entry_date'),all('runs','run_date'),all('exercises','name'),all('measurement_types','name'),
+    all('body_measurements','id'),all('workouts','workout_date'),all('workout_sets','id'),all('cycle_entries','entry_date')]);
+  if(!S.ex.find(e=>e.id===S.chartEx))S.chartEx=S.ex[0]?.id||null;
+  if(!S.mt.find(e=>e.id===S.chartMt))S.chartMt=S.mt[0]?.id||null;
+}
+
+function renderLogin(){
+  document.documentElement.dataset.theme='light';
+  $('#app').innerHTML=`<main><h1>Suivi Santé</h1><div class="card">
+  <label>${t('email')}</label><input id="em" type="email" autocomplete="email">
+  <label>${t('password')}</label><input id="pw" type="password" autocomplete="current-password">
+  <button onclick="doLogin()">${t('login')}</button>
+  <button class="sec" onclick="doMagic()" style="margin-top:10px">${t('magic')}</button>
+  <p class="msg" id="msg"></p></div></main>`;
+}
+async function doLogin(){const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});if(error)flash(error.message)}
+async function doMagic(){const {error}=await sb.auth.signInWithOtp({email:$('#em').value.trim(),options:{shouldCreateUser:false,emailRedirectTo:location.origin}});flash(error?error.message:t('sent'))}
+
+const ICON={
+home:'<path d="M3 11l9-8 9 8M5 10v10h14V10"/>',
+body:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 10a5 4 0 0 1 8 0M12 10l2-2"/>',
+train:'<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>',
+cycle:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+settings:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'};
+function tabs(){const m=S.profile?.modules||{};return ['home','body',...((m.gym!==false||m.running!==false)?['train']:[]),...(m.cycle?['cycle']:[]),'settings']}
+const nav=()=>`<nav>${tabs().map(k=>`<a class="${S.tab===k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${t(k)}</a>`).join('')}</nav>`;
+function go(k){S.tab=k;render()}
+function render(){
+  if(!tabs().includes(S.tab))S.tab='home';
+  Object.values(S.charts).forEach(c=>c.destroy());S.charts={};
+  document.documentElement.dataset.theme=S.profile?.theme||'light';
+  document.documentElement.lang=lang();
+  Chart.defaults.color='#8a949c';Chart.defaults.font.family='-apple-system,system-ui,sans-serif';
+  $('#app').innerHTML=`<main>${views[S.tab]()}</main>${nav()}`;
+  ({home:()=>{drawWeight('c1');drawWeekly('c2')},body:()=>{drawWeight('c1');drawMeasure()},train:()=>{drawWeekly('c2');drawEx()},cycle:drawCycle,settings:()=>{}})[S.tab]();
+}
+
+const CO={plugins:{legend:{display:false}},scales:{x:{ticks:{maxTicksLimit:5},grid:{display:false}}}};
+const CL={...CO,plugins:{legend:{position:'bottom'}}};
+function mk(id,cfg){const el=document.getElementById(id);if(!el)return;S.charts[id]?.destroy();S.charts[id]=new Chart(el,cfg)}
+function movAvg(){
+  const L=S.w.filter(e=>e.weight_kg!=null);
+  return L.map(e=>{const win=L.filter(x=>x.entry_date<=e.entry_date&&dayDiff(e.entry_date,x.entry_date)<7);return{d:e.entry_date,v:+e.weight_kg,m:win.reduce((a,x)=>a+ +x.weight_kg,0)/win.length}});
+}
+function weekStart(ds){const x=new Date(ds+'T00:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10)}
+function weeklyKm(){const m={};S.r.forEach(r=>{const k=weekStart(r.run_date);m[k]=(m[k]||0)+ +r.distance_km});return m}
+function drawWeight(id){
+  const a=movAvg();if(!a.length)return;
+  const ds=[{label:wUnit(),data:a.map(x=>+kgOut(x.v).toFixed(1)),borderColor:'#aab2b8',pointRadius:3,tension:.2},
+    {label:t('trend'),data:a.map(x=>+kgOut(x.m).toFixed(2)),borderColor:ACC,borderWidth:3,pointRadius:0,tension:.3}];
+  if(S.goal?.target_weight_kg)ds.push({label:t('target'),data:a.map(()=>+kgOut(+S.goal.target_weight_kg).toFixed(1)),borderColor:'#d99a2b',borderDash:[6,4],pointRadius:0});
+  mk(id,{type:'line',data:{labels:a.map(x=>x.d),datasets:ds},options:CL});
+}
+function drawWeekly(id){
+  const m=weeklyKm(),k=Object.keys(m).sort().slice(-12);if(!k.length)return;
+  mk(id,{type:'bar',data:{labels:k,datasets:[{data:k.map(x=>+kmOut(m[x]).toFixed(1)),backgroundColor:ACC,borderRadius:6}]},options:CO});
+}
+function drawMeasure(){
+  if(!S.chartMt)return;
+  const ed=Object.fromEntries(S.w.map(e=>[e.id,e.entry_date]));
+  const p=S.bm.filter(b=>b.type_id===S.chartMt&&ed[b.entry_id]).map(b=>({d:ed[b.entry_id],v:cmOut(+b.value_cm)})).sort((a,b)=>a.d.localeCompare(b.d));
+  if(!p.length)return;
+  mk('c3',{type:'line',data:{labels:p.map(x=>x.d),datasets:[{data:p.map(x=>+x.v.toFixed(1)),borderColor:ACC,tension:.25}]},options:CO});
+}
+function drawEx(){
+  const ex=S.ex.find(e=>e.id===S.chartEx);if(!ex)return;
+  const wd=Object.fromEntries(S.wo.map(w=>[w.id,w.workout_date])),by={};
+  S.ws.filter(s=>s.exercise_id===ex.id&&wd[s.workout_id]).forEach(s=>{
+    const d=wd[s.workout_id],v=ex.kind==='weight'?+s.weight_kg||0:ex.kind==='bodyweight'?+s.reps||0:+s.duration_s||0;by[d]=Math.max(by[d]||0,v)});
+  const k=Object.keys(by).sort();if(!k.length)return;
+  mk('c3',{type:'line',data:{labels:k,datasets:[{data:k.map(d=>+(ex.kind==='weight'?kgOut(by[d]):by[d]).toFixed(1)),borderColor:ACC,tension:.25}]},options:CO});
+}
+function cycleInfo(){
+  const st=S.cy.filter(c=>c.period_start).map(c=>c.entry_date).sort(),L=[];
+  for(let i=1;i<st.length;i++){const d=dayDiff(st[i],st[i-1]);if(d>=15&&d<=60)L.push(d)}
+  const l6=L.slice(-6),avg=l6.length?l6.reduce((a,b)=>a+b,0)/l6.length:null,last=st[st.length-1]||null;
+  return{last,avg,next:avg&&last?addDays(last,Math.round(avg)):null,day:last?dayDiff(today(),last)+1:null};
+}
+function drawCycle(){
+  const L=S.cy.filter(c=>c.mood||c.energy).slice(-60);if(!L.length)return;
+  mk('c4',{type:'line',data:{labels:L.map(c=>c.entry_date),datasets:[
+    {label:t('mood'),data:L.map(c=>c.mood),borderColor:'#d99a2b',tension:.3,spanGaps:true},
+    {label:t('energy'),data:L.map(c=>c.energy),borderColor:ACC,tension:.3,spanGaps:true}]},options:{...CL,scales:{...CL.scales,y:{min:1,max:5,ticks:{stepSize:1}}}}});
+}
+function summary(days){
+  const from=addDays(today(),-(days-1)),inR=d=>d>=from&&d<=today();
+  const wo=S.wo.filter(w=>inR(w.workout_date)),rn=S.r.filter(r=>inR(r.run_date)),ids=new Set(wo.map(w=>w.id));
+  const vol=S.ws.filter(s=>ids.has(s.workout_id)).reduce((a,s)=>a+(+s.reps||0)*(+s.weight_kg||0),0);
+  const km=rn.reduce((a,r)=>a+ +r.distance_km,0);
+  const we=S.w.filter(e=>e.weight_kg!=null&&inR(e.entry_date));
+  const dw=we.length>=2?+we[we.length-1].weight_kg- +we[0].weight_kg:null;
+  const sessions=wo.length+rn.length,target=(S.profile.modules?.target_sessions||3)*days/7;
+  const score=Math.round(70*Math.min(1,sessions/target)+30*Math.min(1,we.length/(3*days/7)));
+  return{sessions,km,vol,dw,score};
+}
+
+const locLabel=l=>({gym:t('gym'),home:t('homeLoc'),outdoor:t('outdoor')}[l]||l);
+const opt=(v,cur,l)=>`<option value="${v}" ${v===cur?'selected':''}>${l}</option>`;
+function draftHtml(){
+  const exm=Object.fromEntries(S.ex.map(x=>[x.id,x]));
+  return S.draft.map((s,i)=>`<div class="row"><span>${esc(exm[s.ex]?.name)}</span><span>${s.reps??'–'} × ${s.w!=null?fW(s.w):'–'}${s.rpe?' · RPE '+s.rpe:''}</span><button type="button" class="x" onclick="rmSet(${i})">✕</button></div>`).join('');
+}
+
+const views={
+home(){
+  const a=movAvg(),last=a[a.length-1],sm=summary(S.period),m=S.profile.modules||{};
+  let prog='';
+  const g=S.goal;
+  if(last&&g?.target_weight_kg){
+    const start=+(g.start_weight_kg??a[0].v),tg=+g.target_weight_kg;
+    const p=tg===start?100:Math.max(0,Math.min(100,(last.v-start)/(tg-start)*100));
+    prog=`<div class="card"><h2>${t('goalProg')} → ${fW(tg)}</h2><div class="bar"><i style="width:${p.toFixed(0)}%"></i></div><p class="mut" style="margin:6px 0 0">${p.toFixed(0)} %</p></div>`;
+  }
+  let cyc='';
+  if(m.cycle){const c=cycleInfo();if(c.next)cyc=`<div class="card"><h2>${t('nextPeriod')}</h2><div class="big">${c.next}</div><p class="mut" style="margin:4px 0 0">${t('cycleDay')} ${c.day}</p></div>`}
+  return `<h1>${t('hello')} ${esc(S.profile.display_name||'')}</h1>
+  <div class="seg"><button class="${S.period===7?'on':''}" onclick="S.period=7;render()">${t('week')}</button><button class="${S.period===30?'on':''}" onclick="S.period=30;render()">${t('month')}</button></div>
+  <div class="card"><h2>${t('score')}</h2><div class="big">${sm.score} / 100</div><div class="bar" style="margin-top:10px"><i style="width:${sm.score}%"></i></div></div>
+  <div class="grid">
+  <div class="card"><div class="mut">${t('current')}</div><div class="big">${last?fW(last.v):'–'}</div></div>
+  <div class="card"><div class="mut">${t('change')}</div><div class="big">${sm.dw==null?'–':(sm.dw>=0?'+':'')+kgOut(sm.dw).toFixed(1)}</div></div>
+  <div class="card"><div class="mut">${t('sessions')}</div><div class="big">${sm.sessions}</div></div>
+  <div class="card"><div class="mut">${t('kmTotal')}</div><div class="big">${kmOut(sm.km).toFixed(1)} <span class="mut">${dUnit()}</span></div></div>
+  </div>
+  <div class="card"><div class="mut">${t('volume')}</div><div class="big">${Math.round(kgOut(sm.vol)).toLocaleString()} <span class="mut">${wUnit()}</span></div></div>
+  ${prog}${cyc}
+  <div class="card"><h2>${t('weight')}</h2><canvas id="c1"></canvas></div>
+  <div class="card"><h2>${t('weekly')}</h2><canvas id="c2"></canvas></div>`;
+},
+body(){
+  return `<h1>${t('body')}</h1>
+  <form class="card" onsubmit="return saveBody(event)">
+  <label>${t('date')}</label><input id="wd" type="date" value="${today()}" required>
+  <div class="grid"><div><label>${t('weight')} (${wUnit()})</label><input id="wv" type="number" step="0.1" inputmode="decimal"></div>
+  <div><label>${t('bodyfat')}</label><input id="wf" type="number" step="0.1" inputmode="decimal"></div></div>
+  ${S.mt.length?`<h2>${t('measures')} (${lUnit()})</h2><div class="grid">${S.mt.map(m=>`<div><label>${esc(m.name)}</label><input class="mi" data-id="${m.id}" type="number" step="0.1" inputmode="decimal"></div>`).join('')}</div>`:''}
+  <button>${t('save')}</button><p class="msg" id="msg"></p></form>
+  <div class="card"><div class="inline"><input id="nmt" placeholder="${esc(t('newMeasure'))}"><button type="button" class="sec small" onclick="addMt()">${t('add')}</button></div></div>
+  <div class="card"><h2>${t('weight')}</h2><canvas id="c1"></canvas></div>
+  ${S.mt.length?`<div class="card"><select onchange="S.chartMt=this.value;render()">${S.mt.map(m=>opt(m.id,S.chartMt,esc(m.name))).join('')}</select><canvas id="c3"></canvas></div>`:''}
+  <div class="card">${[...S.w].reverse().slice(0,12).map(e=>`<div class="row"><span>${e.entry_date}</span><span>${fW(e.weight_kg)}${e.body_fat_pct?' · '+e.body_fat_pct+' %':''}</span><button class="x" onclick="del('body_entries','${e.id}')">✕</button></div>`).join('')||`<p class="mut">${t('noData')}</p>`}</div>`;
+},
+train(){
+  const m=S.profile.modules||{},allowed=[...(m.gym!==false?['workout']:[]),...(m.running!==false?['run']:[])];
+  const mode=allowed.includes(S.trainMode)?S.trainMode:allowed[0];
+  const seg=allowed.length>1?`<div class="seg">${allowed.map(k=>`<button class="${mode===k?'on':''}" onclick="S.trainMode='${k}';render()">${t(k)}</button>`).join('')}</div>`:'';
+  if(mode==='run')return `<h1>${t('train')}</h1>${seg}
+  <form class="card" onsubmit="return saveRun(event)">
+  <label>${t('date')}</label><input id="rd" type="date" value="${today()}" required>
+  <div class="grid"><div><label>${t('distance')} (${dUnit()})</label><input id="rk" type="number" step="0.01" inputmode="decimal" required></div>
+  <div><label>${t('minutes')}</label><input id="rm" type="number" step="0.1" inputmode="decimal" required></div></div>
+  <button>${t('save')}</button><p class="msg" id="msg"></p></form>
+  <div class="card"><h2>${t('weekly')}</h2><canvas id="c2"></canvas></div>
+  <div class="card">${[...S.r].reverse().slice(0,12).map(r=>`<div class="row"><span>${r.run_date}</span><span>${fD(r.distance_km)} · ${fPace(r.distance_km,r.duration_s)}</span><button class="x" onclick="del('runs','${r.id}')">✕</button></div>`).join('')||`<p class="mut">${t('noData')}</p>`}</div>`;
+  const wsBy={};S.ws.forEach(s=>{(wsBy[s.workout_id]=wsBy[s.workout_id]||[]).push(s)});
+  return `<h1>${t('train')}</h1>${seg}
+  <form class="card" onsubmit="return saveWorkout(event)">
+  <div class="grid"><div><label>${t('date')}</label><input id="xd" type="date" value="${today()}" required></div>
+  <div><label>${t('location')}</label><select id="xl">${opt('gym','gym',t('gym'))}${opt('home','',t('homeLoc'))}${opt('outdoor','',t('outdoor'))}</select></div>
+  <div><label>${t('title')}</label><input id="xt"></div>
+  <div><label>${t('duration')}</label><input id="xm" type="number" inputmode="numeric"></div></div>
+  <h2>${t('exercise')}</h2>
+  <select id="xe">${S.ex.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select>
+  <div class="grid"><div><label>${t('reps')}</label><input id="xr" type="number" inputmode="numeric"></div>
+  <div><label>${t('load')} (${wUnit()})</label><input id="xw" type="number" step="0.5" inputmode="decimal"></div></div>
+  <label>${t('rpe')}</label><input id="xp" type="number" min="1" max="10" step="0.5" inputmode="decimal">
+  <button type="button" class="sec" onclick="addSet()">${t('addSet')}</button>
+  <div id="draft" style="margin:10px 0">${draftHtml()}</div>
+  <details><summary>${t('newEx')}</summary>
+  <input id="nen" placeholder="${esc(t('exName'))}"><select id="nek">${opt('weight','weight',t('kindW'))}${opt('bodyweight','',t('kindB'))}${opt('duration','',t('kindD'))}</select>
+  <button type="button" class="sec" onclick="addEx()">${t('create')}</button></details>
+  <button>${t('saveWorkout')}</button><p class="msg" id="msg"></p></form>
+  ${S.ex.length?`<div class="card"><h2>${t('progress')}</h2><select onchange="S.chartEx=this.value;render()">${S.ex.map(e=>opt(e.id,S.chartEx,esc(e.name))).join('')}</select><canvas id="c3"></canvas></div>`:''}
+  <div class="card">${[...S.wo].reverse().slice(0,10).map(w=>{const ss=wsBy[w.id]||[],v=ss.reduce((a,s)=>a+(+s.reps||0)*(+s.weight_kg||0),0);
+    return `<div class="row"><span><b>${esc(w.title||locLabel(w.location))}</b><br><span class="mut">${w.workout_date} · ${locLabel(w.location)}</span></span><span class="mut">${ss.length} ${t('sets')} · ${Math.round(kgOut(v))} ${wUnit()}</span><button class="x" onclick="del('workouts','${w.id}')">✕</button></div>`}).join('')||`<p class="mut">${t('noData')}</p>`}</div>`;
+},
+cycle(){
+  const c=cycleInfo();
+  const info=c.avg?`<div class="grid"><div><div class="mut">${t('nextPeriod')}</div><div class="big" style="font-size:20px">${c.next}</div></div><div><div class="mut">${t('avgCycle')}</div><div class="big" style="font-size:20px">${c.avg.toFixed(1)} ${t('days')}</div></div></div>`:`<p class="mut">${t('needTwo')}</p>`;
+  return `<h1>${t('cycle')}</h1>
+  <div class="card">${info}${c.day?`<p class="mut" style="margin:8px 0 0">${t('cycleDay')} : ${c.day}</p>`:''}<p class="mut" style="margin:8px 0 0">${t('disclaimer')}</p></div>
+  <form class="card" onsubmit="return saveCycle(event)">
+  <label>${t('date')}</label><input id="cd" type="date" value="${today()}" required>
+  <div class="chips"><label class="chip"><input type="checkbox" id="cps">${t('periodStart')}</label><label class="chip"><input type="checkbox" id="cpe">${t('periodEnd')}</label></div>
+  <label>${t('flow')}</label><select id="cf"><option value="">–</option>${['none','light','medium','heavy'].map(k=>`<option value="${k}">${t(k)}</option>`).join('')}</select>
+  <label>${t('symptoms')}</label><div class="chips" id="sym">${SYM.map(k=>`<label class="chip"><input type="checkbox" value="${k}">${t(k)}</label>`).join('')}</div>
+  <div class="grid"><div><label>${t('mood')}</label><select id="cm"><option value="">–</option>${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select></div>
+  <div><label>${t('energy')}</label><select id="ce"><option value="">–</option>${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select></div></div>
+  <label>${t('notes')}</label><input id="cn">
+  <button>${t('save')}</button><p class="msg" id="msg"></p></form>
+  <div class="card"><canvas id="c4"></canvas></div>
+  <div class="card">${[...S.cy].reverse().slice(0,10).map(e=>`<div class="row"><span>${e.entry_date}</span><span class="mut">${e.period_start?'● ':''}${e.period_end?'○ ':''}${(e.symptoms||[]).map(s=>t(s)).join(', ')}</span><button class="x" onclick="del('cycle_entries','${e.id}')">✕</button></div>`).join('')||`<p class="mut">${t('noData')}</p>`}</div>`;
+},
+settings(){
+  const p=S.profile,g=S.goal||{},m=p.modules||{};
+  return `<h1>${t('settings')}</h1>
+  <form class="card" onsubmit="return saveProfile(event)">
+  <label>${t('name')}</label><input id="sn" value="${esc(p.display_name)}">
+  <label>${t('language')}</label><select id="sl">${opt('fr',p.language,'Français')}${opt('en',p.language,'English')}${opt('pl',p.language,'Polski')}</select>
+  <label>${t('units')}</label><div class="grid" style="grid-template-columns:1fr 1fr 1fr"><select id="sw">${opt('kg',p.weight_unit,'kg')}${opt('lb',p.weight_unit,'lb')}</select><select id="sd">${opt('km',p.distance_unit,'km')}${opt('mi',p.distance_unit,'mi')}</select><select id="su">${opt('cm',p.length_unit,'cm')}${opt('in',p.length_unit,'in')}</select></div>
+  <label>${t('theme')}</label><select id="st">${opt('light',p.theme,t('lightT'))}${opt('dark',p.theme,t('darkT'))}</select>
+  <h2>${t('modules')}</h2>
+  <div class="chips"><label class="chip"><input type="checkbox" id="mg" ${m.gym!==false?'checked':''}>${t('mGym')}</label><label class="chip"><input type="checkbox" id="mr" ${m.running!==false?'checked':''}>${t('mRun')}</label><label class="chip"><input type="checkbox" id="mc" ${m.cycle?'checked':''}>${t('mCycle')}</label></div>
+  <label>${t('targetSessions')}</label><input id="ts" type="number" min="1" max="14" value="${m.target_sessions||3}">
+  <button>${t('save')}</button></form>
+  <form class="card" onsubmit="return saveGoal(event)"><h2>${t('goal')}</h2>
+  <select id="gt">${['gain','loss','maintain','performance'].map(k=>opt(k,g.type,t(k))).join('')}</select>
+  <label>${t('target')} (${wUnit()})</label><input id="gw" type="number" step="0.1" value="${g.target_weight_kg?kgOut(+g.target_weight_kg).toFixed(1):''}">
+  <label>${t('targetDate')}</label><input id="gd" type="date" value="${g.target_date||''}">
+  <button>${t('save')}</button></form>
+  ${S.mt.length?`<div class="card"><h2>${t('measureTypes')}</h2>${S.mt.map(x=>`<div class="row"><span>${esc(x.name)}</span><button class="x" onclick="delMt('${x.id}')">✕</button></div>`).join('')}</div>`:''}
+  <div class="card"><button onclick="exportXlsx()">${t('export')}</button>
+  <p class="mut">${t('importHelp')}</p><input type="file" accept=".xlsx,.xls,.csv" onchange="importXlsx(this)"><p class="msg" id="msg"></p></div>
+  <form class="card" onsubmit="return savePwd(event)"><label>${t('newpwd')}</label><input id="np" type="password" minlength="8" autocomplete="new-password" required><button class="sec">${t('save')}</button><p class="msg" id="pm"></p></form>
+  <button class="sec" onclick="sb.auth.signOut()">${t('logout')}</button>`;
+}};
+
+async function refresh(){await loadAll();render()}
+async function saveBody(e){
+  e.preventDefault();
+  const row={user_id:S.user.id,entry_date:$('#wd').value};
+  if($('#wv').value)row.weight_kg=+kgIn(+$('#wv').value).toFixed(2);
+  if($('#wf').value)row.body_fat_pct=+$('#wf').value;
+  const ms=[...document.querySelectorAll('.mi')].filter(i=>i.value);
+  if(!row.weight_kg&&!row.body_fat_pct&&!ms.length)return flash(t('noData'));
+  const {data,error}=await sb.from('body_entries').upsert(row,{onConflict:'user_id,entry_date'}).select().single();
+  if(error)return flash(error.message);
+  for(const i of ms){
+    await sb.from('body_measurements').delete().eq('entry_id',data.id).eq('type_id',i.dataset.id);
+    const r=await sb.from('body_measurements').insert({user_id:S.user.id,entry_id:data.id,type_id:i.dataset.id,value_cm:+cmIn(+i.value).toFixed(2)});
+    if(r.error)return flash(r.error.message);
+  }
+  await refresh();flash(t('saved'));return false;
+}
+async function addMt(){
+  const n=$('#nmt').value.trim();if(!n)return;
+  const {error}=await sb.from('measurement_types').insert({user_id:S.user.id,name:n});
+  if(error)return flash(error.message);
+  await refresh();
+}
+async function delMt(id){if(!confirm('?'))return;await sb.from('measurement_types').delete().eq('id',id);await refresh()}
+async function saveRun(e){
+  e.preventDefault();
+  const {error}=await sb.from('runs').insert({user_id:S.user.id,run_date:$('#rd').value,distance_km:+kmIn(+$('#rk').value).toFixed(3),duration_s:Math.round(+$('#rm').value*60)});
+  if(error)return flash(error.message);
+  await refresh();flash(t('saved'));return false;
+}
+async function del(tb,id){await sb.from(tb).delete().eq('id',id);await refresh()}
+function addSet(){
+  const ex=$('#xe').value;if(!ex)return flash(t('noEx'));
+  const r=$('#xr').value,w=$('#xw').value,p=$('#xp').value;
+  S.draft.push({ex,reps:r?+r:null,w:w?+kgIn(+w).toFixed(2):null,rpe:p?+p:null});drawDraft();
+}
+function rmSet(i){S.draft.splice(i,1);drawDraft()}
+function drawDraft(){const el=$('#draft');if(el)el.innerHTML=draftHtml()}
+async function addEx(){
+  const n=$('#nen').value.trim();if(!n)return;
+  const {error}=await sb.from('exercises').insert({user_id:S.user.id,name:n,kind:$('#nek').value});
+  if(error)return flash(error.message);
+  await refresh();
+}
+async function saveWorkout(e){
+  e.preventDefault();
+  if(!S.draft.length)return flash(t('addSetFirst'));
+  const exm=Object.fromEntries(S.ex.map(x=>[x.id,x])),prs=[];
+  for(const id of new Set(S.draft.map(s=>s.ex))){
+    const ex=exm[id],f=s=>ex.kind==='weight'?+s.weight_kg||0:ex.kind==='bodyweight'?+s.reps||0:+s.duration_s||0;
+    const prev=Math.max(0,...S.ws.filter(s=>s.exercise_id===id).map(f));
+    const now=Math.max(0,...S.draft.filter(s=>s.ex===id).map(s=>ex.kind==='weight'?+s.w||0:+s.reps||0));
+    if(prev>0&&now>prev)prs.push(ex.name);
+  }
+  const {data:w,error}=await sb.from('workouts').insert({user_id:S.user.id,workout_date:$('#xd').value,location:$('#xl').value,title:$('#xt').value||null,duration_min:$('#xm').value?+$('#xm').value:null}).select().single();
+  if(error)return flash(error.message);
+  const cnt={};
+  const sets=S.draft.map(s=>{const k=exm[s.ex].kind;cnt[s.ex]=(cnt[s.ex]||0)+1;
+    return{user_id:S.user.id,workout_id:w.id,exercise_id:s.ex,set_number:cnt[s.ex],reps:k==='duration'?null:s.reps,weight_kg:k==='weight'?s.w:null,duration_s:k==='duration'?s.reps:null,rpe:s.rpe}});
+  const r=await sb.from('workout_sets').insert(sets);
+  if(r.error)return flash(r.error.message);
+  S.draft=[];await refresh();
+  flash(prs.length?t('prMsg')+prs.join(', '):t('saved'));return false;
+}
+async function saveCycle(e){
+  e.preventDefault();
+  const row={user_id:S.user.id,entry_date:$('#cd').value,period_start:$('#cps').checked,period_end:$('#cpe').checked,flow:$('#cf').value||null,
+    symptoms:[...document.querySelectorAll('#sym input:checked')].map(i=>i.value),mood:$('#cm').value?+$('#cm').value:null,energy:$('#ce').value?+$('#ce').value:null,notes:$('#cn').value||null};
+  const {error}=await sb.from('cycle_entries').upsert(row,{onConflict:'user_id,entry_date'});
+  if(error)return flash(error.message);
+  await refresh();flash(t('saved'));return false;
+}
+async function saveProfile(e){
+  e.preventDefault();
+  const modules={...(S.profile.modules||{}),gym:$('#mg').checked,running:$('#mr').checked,cycle:$('#mc').checked,target_sessions:+$('#ts').value||3};
+  const {error}=await sb.from('profiles').update({display_name:$('#sn').value,language:$('#sl').value,weight_unit:$('#sw').value,distance_unit:$('#sd').value,length_unit:$('#su').value,theme:$('#st').value,modules}).eq('id',S.user.id);
+  if(error)return alert(error.message);
+  await refresh();return false;
+}
+async function saveGoal(e){
+  e.preventDefault();
+  const last=S.w.filter(x=>x.weight_kg!=null).pop();
+  await sb.from('goals').update({active:false}).eq('user_id',S.user.id).eq('active',true);
+  const {error}=await sb.from('goals').insert({user_id:S.user.id,type:$('#gt').value,start_weight_kg:last?last.weight_kg:null,target_weight_kg:$('#gw').value?+kgIn(+$('#gw').value).toFixed(2):null,target_date:$('#gd').value||null,active:true});
+  if(error)return alert(error.message);
+  await refresh();return false;
+}
+async function savePwd(e){
+  e.preventDefault();
+  const {error}=await sb.auth.updateUser({password:$('#np').value});
+  flash(error?error.message:t('pwdok'),'pm');return false;
+}
+
+function exportXlsx(){
+  const wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),n);
+  const ed=Object.fromEntries(S.w.map(e=>[e.id,e.entry_date])),tn=Object.fromEntries(S.mt.map(x=>[x.id,x.name]));
+  const wd=Object.fromEntries(S.wo.map(w=>[w.id,w])),en=Object.fromEntries(S.ex.map(x=>[x.id,x.name]));
+  add('weight',S.w.map(e=>({date:e.entry_date,weight_kg:e.weight_kg,body_fat_pct:e.body_fat_pct})));
+  add('measures',S.bm.filter(b=>ed[b.entry_id]).map(b=>({date:ed[b.entry_id],name:tn[b.type_id],value_cm:b.value_cm})));
+  add('runs',S.r.map(r=>({date:r.run_date,distance_km:r.distance_km,duration_min:+(r.duration_s/60).toFixed(2)})));
+  add('workouts',S.ws.filter(s=>wd[s.workout_id]).map(s=>({date:wd[s.workout_id].workout_date,location:wd[s.workout_id].location,title:wd[s.workout_id].title||'',exercise:en[s.exercise_id],set:s.set_number,reps:s.reps??s.duration_s,weight_kg:s.weight_kg,rpe:s.rpe})));
+  add('cycle',S.cy.map(c=>({date:c.entry_date,period_start:c.period_start,period_end:c.period_end,flow:c.flow,mood:c.mood,energy:c.energy,symptoms:(c.symptoms||[]).join(', '),notes:c.notes})));
+  XLSX.writeFile(wb,'suivi-sante-'+today()+'.xlsx');
+}
+async function importXlsx(inp){
+  const f=inp.files[0];if(!f)return;
+  try{
+    const wb=XLSX.read(await f.arrayBuffer()),uid=S.user.id;let n=0;
+    const rows=k=>wb.Sheets[k]?XLSX.utils.sheet_to_json(wb.Sheets[k],{raw:false}):[];
+    const ok=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||''),chk=r=>{if(r.error)throw r.error;return r.data};
+    const W=rows('weight').filter(r=>ok(r.date)&&r.weight_kg).map(r=>({user_id:uid,entry_date:r.date,weight_kg:+r.weight_kg,body_fat_pct:r.body_fat_pct?+r.body_fat_pct:null}));
+    if(W.length){chk(await sb.from('body_entries').upsert(W,{onConflict:'user_id,entry_date'}));n+=W.length}
+    const M=rows('measures').filter(r=>ok(r.date)&&r.name&&r.value_cm);
+    if(M.length){
+      const have=new Set(S.mt.map(x=>x.name)),newT=[...new Set(M.map(r=>r.name))].filter(x=>!have.has(x)).map(name=>({user_id:uid,name}));
+      if(newT.length)chk(await sb.from('measurement_types').insert(newT));
+      chk(await sb.from('body_entries').upsert([...new Set(M.map(r=>r.date))].map(d=>({user_id:uid,entry_date:d})),{onConflict:'user_id,entry_date'}));
+      const mt=await all('measurement_types','name'),be=await all('body_entries','entry_date');
+      const tid=Object.fromEntries(mt.map(x=>[x.name,x.id])),eid=Object.fromEntries(be.map(x=>[x.entry_date,x.id]));
+      for(const e of new Set(M.map(r=>eid[r.date])))chk(await sb.from('body_measurements').delete().eq('entry_id',e));
+      chk(await sb.from('body_measurements').insert(M.map(r=>({user_id:uid,entry_id:eid[r.date],type_id:tid[r.name],value_cm:+r.value_cm}))));
+      n+=M.length;
+    }
+    const have=new Set(S.r.map(r=>r.run_date+'|'+(+r.distance_km)));
+    const R=rows('runs').filter(r=>ok(r.date)&&r.distance_km&&r.duration_min&&!have.has(r.date+'|'+(+r.distance_km))).map(r=>({user_id:uid,run_date:r.date,distance_km:+r.distance_km,duration_s:Math.round(+r.duration_min*60)}));
+    if(R.length){chk(await sb.from('runs').insert(R));n+=R.length}
+    const X=rows('workouts').filter(r=>ok(r.date)&&r.exercise);
+    if(X.length){
+      const haveE=new Set(S.ex.map(e=>e.name)),newE=[...new Set(X.map(r=>r.exercise))].filter(x=>!haveE.has(x)).map(name=>({user_id:uid,name,kind:'weight'}));
+      if(newE.length)chk(await sb.from('exercises').insert(newE));
+      const exs=await all('exercises','name'),eidm=Object.fromEntries(exs.map(e=>[e.name,e.id]));
+      const groups={};X.forEach(r=>{const k=[r.date,r.location||'gym',r.title||''].join('|');(groups[k]=groups[k]||[]).push(r)});
+      const existing=new Set(S.wo.map(w=>[w.workout_date,w.location,w.title||''].join('|')));
+      for(const [k,rs] of Object.entries(groups)){
+        if(existing.has(k))continue;
+        const [d,loc,title]=k.split('|');
+        const w=chk(await sb.from('workouts').insert({user_id:uid,workout_date:d,location:['gym','home','outdoor'].includes(loc)?loc:'gym',title:title||null}).select().single());
+        chk(await sb.from('workout_sets').insert(rs.map((r,i)=>({user_id:uid,workout_id:w.id,exercise_id:eidm[r.exercise],set_number:+r.set||i+1,reps:r.reps?+r.reps:null,weight_kg:r.weight_kg?+r.weight_kg:null,rpe:r.rpe?+r.rpe:null}))));
+        n+=rs.length;
+      }
+    }
+    const yes=v=>/^(true|1|oui|yes)$/i.test(v||'');
+    const C=rows('cycle').filter(r=>ok(r.date)).map(r=>({user_id:uid,entry_date:r.date,period_start:yes(r.period_start),period_end:yes(r.period_end),flow:['none','light','medium','heavy'].includes(r.flow)?r.flow:null,mood:+r.mood||null,energy:+r.energy||null,symptoms:r.symptoms?r.symptoms.split(',').map(s=>s.trim()).filter(Boolean):[],notes:r.notes||null}));
+    if(C.length){chk(await sb.from('cycle_entries').upsert(C,{onConflict:'user_id,entry_date'}));n+=C.length}
+    await refresh();flash(n+' '+t('imported'));
+  }catch(err){flash(err.message)}
+}
+init();
+</script>
+</body>
+</html>
